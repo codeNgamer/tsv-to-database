@@ -12,7 +12,9 @@
   "author": "js-commander",
   "license": "ISC",
   "dependencies": {
+    "@types/lodash": "^4.14.134",
     "better-sqlite3": "^4.2.0",
+    "lodash": "^4.17.11",
     "mongodb": "^3.1.10",
     "progress": "^2.0.3"
   },
