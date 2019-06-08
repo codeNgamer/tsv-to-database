@@ -14,6 +14,7 @@ interface IMongoStreamOptions {
   collectionName?: string;
   mongoClientOptions?: MongoClientOptions;
   onError?: (err: any) => void;
+  onClose?: () => void;
   onReconnect?: () => void;
   onTimeout?: () => void;
 }
@@ -32,11 +33,13 @@ export class MongoWriteStream extends Writable {
   private client: Promise<MongoClient>;
   private lastInsert?: Promise<void | InsertWriteOpResult>;
 
+  private onClose: () => void;
   private onReconnect: () => void;
   private onError: (err: any) => void;
   private onTimeout: () => void;
   constructor(options?: IMongoStreamOptions) {
     super({ objectMode: true });
+    this.onClose = () => {};
     this.onReconnect = () => {};
     this.onError = (err: any) => {};
     this.onTimeout = () => {};
@@ -60,6 +63,9 @@ export class MongoWriteStream extends Writable {
       if (_.isFunction(options.onTimeout)) {
         this.onTimeout = options.onTimeout;
       }
+      if (_.isFunction(options.onClose)) {
+        this.onClose = options.onClose;
+      }
     }
     const mongoOptions = _.isObject(options)
       ? options.mongoClientOptions || {}
@@ -78,6 +84,9 @@ export class MongoWriteStream extends Writable {
       });
       db.on("error", err => {
         this.onError(err);
+      });
+      db.on("close", () => {
+        this.onClose();
       });
       db.on("timeout", () => {
         this.onTimeout();

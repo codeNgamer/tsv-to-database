@@ -23,6 +23,7 @@ class MongoWriteStream extends stream_1.Writable {
         this.databaseName = "tsv_to_mongo";
         this.collectionName = "parsed_tsv";
         this.databaseUrl = "mongodb://localhost:27017";
+        this.onClose = () => { };
         this.onReconnect = () => { };
         this.onError = (err) => { };
         this.onTimeout = () => { };
@@ -46,6 +47,9 @@ class MongoWriteStream extends stream_1.Writable {
             if (_.isFunction(options.onTimeout)) {
                 this.onTimeout = options.onTimeout;
             }
+            if (_.isFunction(options.onClose)) {
+                this.onClose = options.onClose;
+            }
         }
         const mongoOptions = _.isObject(options)
             ? options.mongoClientOptions || {}
@@ -59,6 +63,9 @@ class MongoWriteStream extends stream_1.Writable {
             });
             db.on("error", err => {
                 this.onError(err);
+            });
+            db.on("close", () => {
+                this.onClose();
             });
             db.on("timeout", () => {
                 this.onTimeout();
