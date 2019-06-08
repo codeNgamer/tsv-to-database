@@ -23,9 +23,9 @@ class MongoWriteStream extends stream_1.Writable {
         this.databaseName = "tsv_to_mongo";
         this.collectionName = "parsed_tsv";
         this.databaseUrl = "mongodb://localhost:27017";
-        let onReconnect = () => { };
-        let onError = (err) => { };
-        let onTimeout = () => { };
+        this.onReconnect = () => { };
+        this.onError = (err) => { };
+        this.onTimeout = () => { };
         if (options) {
             const { databaseName, databaseUrl, collectionName } = options;
             if (databaseName) {
@@ -38,13 +38,13 @@ class MongoWriteStream extends stream_1.Writable {
                 this.collectionName = collectionName;
             }
             if (_.isFunction(options.onReconnect)) {
-                onReconnect = options.onReconnect;
+                this.onReconnect = options.onReconnect;
             }
             if (_.isFunction(options.onError)) {
-                onError = options.onError;
+                this.onError = options.onError;
             }
             if (_.isFunction(options.onTimeout)) {
-                onTimeout = options.onTimeout;
+                this.onTimeout = options.onTimeout;
             }
         }
         const mongoOptions = _.isObject(options)
@@ -55,13 +55,13 @@ class MongoWriteStream extends stream_1.Writable {
             const db = client.db(this.databaseName);
             db.on("reconnect", () => {
                 console.log("-> reconnected");
-                onReconnect();
+                this.onReconnect();
             });
             db.on("error", err => {
-                onError(err);
+                this.onError(err);
             });
             db.on("timeout", () => {
-                onTimeout();
+                this.onTimeout();
             });
             return db;
         });
@@ -73,8 +73,7 @@ class MongoWriteStream extends stream_1.Writable {
             return collection.insertMany(chunk);
         })
             .catch(err => {
-            console.log(err);
-            process.exit();
+            this.onError(err);
         });
         this.lastInsert = this.lastInsert
             ? (this.lastInsert = this.lastInsert.then(() => insertPromice))
