@@ -13,7 +13,7 @@ interface IMongoStreamOptions {
   databaseName?: string;
   collectionName?: string;
   mongoClientOptions?: MongoClientOptions;
-  onError?: () => void;
+  onError?: (err: any) => void;
   onReconnect?: () => void;
   onTimeout?: () => void;
 }
@@ -35,7 +35,7 @@ export class MongoWriteStream extends Writable {
   constructor(options?: IMongoStreamOptions) {
     super({ objectMode: true });
     let onReconnect = () => {};
-    let onError = () => {};
+    let onError = (err: any) => {};
     let onTimeout = () => {};
     if (options) {
       const { databaseName, databaseUrl, collectionName } = options;
@@ -73,8 +73,8 @@ export class MongoWriteStream extends Writable {
         console.log("-> reconnected");
         onReconnect();
       });
-      db.on("error", () => {
-        onError();
+      db.on("error", err => {
+        onError(err);
       });
       db.on("timeout", () => {
         onTimeout();
