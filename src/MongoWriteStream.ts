@@ -32,11 +32,14 @@ export class MongoWriteStream extends Writable {
   private client: Promise<MongoClient>;
   private lastInsert?: Promise<void | InsertWriteOpResult>;
 
+  private onReconnect: () => void;
+  private onError: (err: any) => void;
+  private onTimeout: () => void;
   constructor(options?: IMongoStreamOptions) {
     super({ objectMode: true });
-    let onReconnect = () => {};
-    let onError = (err: any) => {};
-    let onTimeout = () => {};
+    this.onReconnect = () => {};
+    this.onError = (err: any) => {};
+    this.onTimeout = () => {};
     if (options) {
       const { databaseName, databaseUrl, collectionName } = options;
       if (databaseName) {
@@ -49,13 +52,13 @@ export class MongoWriteStream extends Writable {
         this.collectionName = collectionName;
       }
       if (_.isFunction(options.onReconnect)) {
-        onReconnect = options.onReconnect;
+        this.onReconnect = options.onReconnect;
       }
       if (_.isFunction(options.onError)) {
-        onError = options.onError;
+        this.onError = options.onError;
       }
       if (_.isFunction(options.onTimeout)) {
-        onTimeout = options.onTimeout;
+        this.onTimeout = options.onTimeout;
       }
     }
     const mongoOptions = _.isObject(options)
@@ -71,13 +74,13 @@ export class MongoWriteStream extends Writable {
       const db = client.db(this.databaseName);
       db.on("reconnect", () => {
         console.log("-> reconnected");
-        onReconnect();
+        this.onReconnect();
       });
       db.on("error", err => {
-        onError(err);
+        this.onError(err);
       });
       db.on("timeout", () => {
-        onTimeout();
+        this.onTimeout();
       });
       return db;
     });
@@ -94,8 +97,7 @@ export class MongoWriteStream extends Writable {
         return collection.insertMany(chunk);
       })
       .catch(err => {
-        console.log(err);
-        process.exit();
+        this.onError(err);
       });
 
     this.lastInsert = this.lastInsert
